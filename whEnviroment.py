@@ -1,19 +1,81 @@
 import json
+import numpy as np
+
 
 class whEnviroment:
+    """
+        This class contains the wrapper for interacting with the warhammer game.
+        It is written similar to a openAIgym enviroment
+    """
     def __init__(self):
+        
+        # initialize variabels
         self.allies = "allies"
         self.enemies = "enemies"
+        self.position = "position"
+        self.observation_length = 12
         
+        # initialize where to find the observation and orders file 
         self.observationfile = "C:\Program Files (x86)\Steam\steamapps\common\Total War WARHAMMER II\observation.json"
         self.ordersfile = "C:\Program Files (x86)\Steam\steamapps\common\Total War WARHAMMER II\orders.json"
+
+        self.unitTypes = {
+            "wh_main_emp_cha_karl_franz_0": 1,
+            "wh_main_emp_inf_handgunners": 2,
+            "wh_main_emp_cav_empire_knights": 3
+        }
     
+
+    # method to read all the data from 
     def readObservation(self):
+        """reads the most recent observation json gets called when the enveriment takes a step
+
+        Returns:
+            numpy array: A numpy array that contains the most recent observation
+        """
         f = open(self.observationfile)
         self.observation = json.load(f)
 
-        self.allies = self.observation[self.allies]
-        self.enemies = self.observation[self.enemies]
+        self.alliedObs = self.observation[self.allies]
+        self.enemyObs = self.observation[self.enemies]
+        
+        observations = np.empty((0 ,self.observation_length), int)
+
+        for ally in self.alliedObs:
+            observation = self.singleObservation(ally,True)
+            observations = np.append(observations,observation,axis= 0)
+            print(observations)
+        
+        for enemy in self.enemyObs:
+            observation = self.singleObservation(enemy,False)
+            observations = np.append(observations,observation,axis= 0)
+        
+        return observations
+
+    def singleObservation(self, unit, ally):
+        position = unit[self.position]
+        type = unit["type"]
+        #print(self.unitTypes[type])
+        observation = np.array(
+            [[
+                ally,
+                position["x"],
+                position["y"],
+                position["bearing"],
+                position["width"],
+                self.unitTypes[unit["type"]],
+                # unit["can_fly"],
+                # unit["is_flying"],
+                unit["is_under_missile_attack"],
+                unit["in_melee"],
+                unit["is_wavering"],
+                unit["is_routing"],
+                unit["is_shattered"],
+                unit["unary_hitpoints"]     
+            ]]
+        )
+        #print(observation)
+        return observation    
         
     
     def NormalizeObservation(self):
