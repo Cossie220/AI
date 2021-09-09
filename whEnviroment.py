@@ -14,11 +14,15 @@ class whEnviroment:
         self.enemies = "enemies"
         self.position = "position"
         self.observation_length = 12
-        
+
+        self.low = np.array([0,-500,-500,0,0,0,0,0,0,0,0,0])
+        self.high = np.array([1,500,500,360,100,3,1,1,1,1,1,1])
+
         # initialize where to find the observation and orders file 
         self.observationfile = "C:\Program Files (x86)\Steam\steamapps\common\Total War WARHAMMER II\observation.json"
         self.ordersfile = "C:\Program Files (x86)\Steam\steamapps\common\Total War WARHAMMER II\orders.json"
 
+        # temp wile change to export of database
         self.unitTypes = {
             "wh_main_emp_cha_karl_franz_0": 1,
             "wh_main_emp_inf_handgunners": 2,
@@ -26,7 +30,6 @@ class whEnviroment:
         }
     
 
-    # method to read all the data from 
     def readObservation(self):
         """reads the most recent observation json gets called when the enveriment takes a step
 
@@ -44,7 +47,6 @@ class whEnviroment:
         for ally in self.alliedObs:
             observation = self.singleObservation(ally,True)
             observations = np.append(observations,observation,axis= 0)
-            print(observations)
         
         for enemy in self.enemyObs:
             observation = self.singleObservation(enemy,False)
@@ -74,12 +76,13 @@ class whEnviroment:
                 unit["unary_hitpoints"]     
             ]]
         )
-        #print(observation)
+        observation = self.NormalizeObservation(observation)
         return observation    
-        
-    
-    def NormalizeObservation(self):
-        pass
+
+
+    def NormalizeObservation(self, observation):
+        observation = np.divide(np.add(observation,-self.low),np.add(self.high,-self.low))
+        return observation
 
     def calcReward(self):
         pass
