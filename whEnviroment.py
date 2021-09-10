@@ -8,19 +8,28 @@ class whEnviroment:
         It is written similar to a openAIgym enviroment
     """
     def __init__(self):
-        
         # initialize variabels
-        self.allies = "allies"
+        self.allies = "allies"  
         self.enemies = "enemies"
         self.position = "position"
         self.observation_length = 12
 
+        # observation high low settings to normalize the observation
         self.low = np.array([0,-500,-500,0,0,0,0,0,0,0,0,0])
         self.high = np.array([1,500,500,360,100,3,1,1,1,1,1,1])
 
         # initialize where to find the observation and orders file 
         self.observationfile = "C:\Program Files (x86)\Steam\steamapps\common\Total War WARHAMMER II\observation.json"
         self.ordersfile = "C:\Program Files (x86)\Steam\steamapps\common\Total War WARHAMMER II\orders.json"
+
+        # temp value of the diffrent units values to determine reward
+        self.unitValues = {
+            "wh_main_emp_cha_karl_franz_0": 1250,
+            "wh_main_emp_inf_handgunners": 600,
+            "wh_main_emp_cav_empire_knights": 850,
+            "win": 10000,
+            "los": -10000
+        }
 
         # temp wile change to export of database
         self.unitTypes = {
@@ -81,6 +90,14 @@ class whEnviroment:
 
 
     def NormalizeObservation(self, observation):
+        """normalizes observation array
+
+        Args:
+            observation (ndarray): Single observation numpy array
+
+        Returns:
+            [ndarray]: normalized observation
+        """
         observation = np.divide(np.add(observation,-self.low),np.add(self.high,-self.low))
         return observation
 
