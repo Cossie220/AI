@@ -7,12 +7,15 @@ class whEnviroment:
         This class contains the wrapper for interacting with the warhammer game.
         It is written similar to a openAIgym enviroment
     """
-    def __init__(self):
+    def __init__(self, PlayerAI: bool, enemyAI: bool):
         # initialize variabels
         self.allies = "allies"  
         self.enemies = "enemies"
         self.position = "position"
         self.observation_length = 12
+
+        self.playerAI = PlayerAI
+        self.enemyAI = enemyAI
 
         # observation high low settings to normalize the observation
         self.low = np.array([0,-500,-500,0,0,0,0,0,0,0,0,0])
@@ -28,7 +31,7 @@ class whEnviroment:
             "wh_main_emp_inf_handgunners": 600,
             "wh_main_emp_cav_empire_knights": 850,
             "win": 10000,
-            "los": -10000
+            "loss": -10000
         }
 
         # temp wile change to export of database
@@ -101,8 +104,22 @@ class whEnviroment:
         observation = np.divide(np.add(observation,-self.low),np.add(self.high,-self.low))
         return observation
 
-    def calcReward(self):
-        pass
+    def calcReward(self, ally: bool):
+        """[summary]
+
+        Args:
+            ally (bool): [description]
+
+        Returns:
+            [type]: [description]
+        """
+
+        if ally:
+            reward = 0
+        reward = 0        
+        return reward
+
+        
 
     def writeOrders(self, order):
         pass
