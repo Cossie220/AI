@@ -79,7 +79,15 @@ class whEnviroment:
 
         return observationArray
 
-    def resetUnitObservation(self, unit):
+    def resetUnitObservation(self, unit: np.array):
+        """function to reset observation to 0 appart from allience 
+
+        Args:
+            unit (np.array): array to reset
+
+        Returns:
+            [np.array]: zero observation (only alliance filled in)
+        """
         resetArray = np.ones((1,self.observation_length))
         resetArray[0,0] = 0
         resetArray = np.multiply(resetArray,unit)
@@ -134,17 +142,26 @@ class whEnviroment:
 
         if ally:
             reward = 0
-        reward = 0        
-        return reward
+        reward = 0
+        done = False        
+        return reward, done
 
-    def step(self):
-        self.readObservation()
-        self.calcReward()
+    def act(self, action):
+        pass
 
+    def step(self, action):
+        self.act(action)
+        observation = self.readObservation()
+        reward, done = self.calcReward()
+        return observation, reward, done
 
 
     def reset():
-        pass
+        print("**************************")
+        print("***   awaiting reset   ***")
+        print("**************************")
+        observation = None
+        return observation
         
 
     def writeOrders(self, order):
