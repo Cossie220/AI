@@ -1,5 +1,6 @@
 import json
 import numpy as np
+import pyautogui
 from copy import copy
 
 
@@ -190,11 +191,13 @@ class whEnviroment:
         return observation, reward, done
 
 
-    def reset():
+    def reset(self):
+
         print("**************************")
         print("***   awaiting reset   ***")
         print("**************************")
-        observation = None
+        
+        observation = self.readObservation()
         return observation
         
 
