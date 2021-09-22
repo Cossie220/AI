@@ -1,9 +1,12 @@
 from time import time, sleep
+from pydirectinput import press
 import pyautogui
+
 
 
 class whGUI:
     def __init__(self, x = 1208, y = 336):
+        pyautogui.PAUSE = 0.2
         self.TopLeft = { "x": x, "y": y }
         
         startBattleOffset = { "x": 512, "y": 99 }
@@ -28,9 +31,9 @@ class whGUI:
     def focus(self):
         pyautogui.click(x=self.middle["x"], y=self.middle["y"])
 
-    def forceQuit(self):
+    def forceRematch(self):
         self.focus()
-        pyautogui.press('esc')
+        press('esc')
         pyautogui.click(self.rematch["x"], self.rematch["y"])
         pyautogui.click(self.confirm["x"], self.confirm["y"])
     
@@ -40,6 +43,7 @@ class whGUI:
 
     def Rematch(self):
         self.focus
+        pyautogui.click(self.endBattle["x"], self.endBattle["y"])
         pyautogui.click(self.rematch["x"], self.rematch["y"])
 
 

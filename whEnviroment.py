@@ -1,6 +1,7 @@
 import json
 import numpy as np
-import pyautogui
+import os.path
+from whGUI import whGUI
 from copy import copy
 
 
@@ -25,6 +26,7 @@ class whEnviroment:
         # initialize where to find the observation and orders file 
         self.observationfile = "C:\Program Files (x86)\Steam\steamapps\common\Total War WARHAMMER II\observation.json"
         self.ordersfile = "C:\Program Files (x86)\Steam\steamapps\common\Total War WARHAMMER II\orders.json"
+        self.interconnectfile = "C:\Program Files (x86)\Steam\steamapps\common\Total War WARHAMMER II\interconnect.json"
 
         # temp value of the diffrent units values to determine reward
         self.unitValues = {
@@ -165,10 +167,10 @@ class whEnviroment:
             for enemy in self.enemyObs:
                 reward += self.calcRewardSingle(enemy["UiD"], -1)
             
-            if (self.rawObservation["win"] == True):
+            if (self.rawObservation["win"] == 'player'):
                 done = True
                 reward += self.unitValues["loss"]
-            if (self.rawObservation["win"] == False):
+            if (self.rawObservation["win"] == 'enemy'):
                 done = True
                 reward += self.unitValues["win"]
         return reward, done
@@ -192,14 +194,22 @@ class whEnviroment:
 
 
     def reset(self):
-
+        if (self.rawObservation["win"]):
+            whGUI.Rematch()
+        else:
+            whGUI.Rematch()
         print("**************************")
         print("***   awaiting reset   ***")
         print("**************************")
-        
+        self.waitForLoad()
         observation = self.readObservation()
         return observation
         
+    def waitForLoad(self):
+        while (not os.path.exists(self.interconnectfile)):
+            pass
+        return
+
 
     def writeOrders(self, order):
         pass
