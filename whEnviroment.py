@@ -1,6 +1,9 @@
 import json
+import uuid
 import numpy as np
-import pyautogui
+import os.path
+import os
+from whGUI import whGUI
 from copy import copy
 
 
@@ -10,6 +13,8 @@ class whEnviroment:
         It is written similar to a openAIgym enviroment
     """
     def __init__(self, PlayerAI: bool):
+        self.threshold =  0.8
+
         # initialize variabels
         self.allies = "allies"  
         self.enemies = "enemies"
@@ -24,7 +29,9 @@ class whEnviroment:
 
         # initialize where to find the observation and orders file 
         self.observationfile = "C:\Program Files (x86)\Steam\steamapps\common\Total War WARHAMMER II\observation.json"
-        self.ordersfile = "C:\Program Files (x86)\Steam\steamapps\common\Total War WARHAMMER II\orders.json"
+        self.ordersfileName = "C:\Program Files (x86)\Steam\steamapps\common\Total War WARHAMMER II\orders.json"
+        self.interconnectfileGame = "C:\Program Files (x86)\Steam\steamapps\common\Total War WARHAMMER II\interconnectGame.json"
+        self.interconnectfileEnv = "C:\Program Files (x86)\Steam\steamapps\common\Total War WARHAMMER II\interconnectEnv.json"
 
         # temp value of the diffrent units values to determine reward
         self.unitValues = {
@@ -43,11 +50,51 @@ class whEnviroment:
         }
 
         self.observations = {}
+        self.rawObservation= {}
         self.previousObservations = {}
         self.UidToUnitTypes = {}
+
+        self.whGui = whGUI(x = 0, y = 30)
     
 
-    def readObservation(self):
+    def step(self, action):
+        self.__act(action)
+        if (not self.__battleStarted):
+            self.startBattle
+        observation = self.__readObservation()
+        reward, done = self.__calcReward(self.playerAI)
+        return observation, reward, done
+
+    def startBattle(self):
+        self.whGui.startBattle()
+        self.__battleStarted = True
+
+
+
+    def __act(self, ordersArray):
+        alliedOrders = []
+        for alliedOrder in ordersArray:
+            alliedOrders.append(self.__singleOrder(alliedOrder))
+        
+        orders = {}
+        orders["allies"] = alliedOrders
+
+
+    def __singleOrder(self, orderArray):
+         return { 
+            "goto": {
+                "x": orderArray[0],
+                "y": orderArray[1],
+                "moveFast": (orderArray[2] >= self.threshold) 
+                },
+            "attack": {
+                "attack": orderArray[3],
+                "unit": (orderArray[4] >= self.threshold)
+            }
+        }
+
+
+    def __readObservation(self):
         """reads the most recent observation json gets called when the enveriment takes a step
 
         Returns:
@@ -58,7 +105,7 @@ class whEnviroment:
 
         #set all but the ally code to zero in observation for al UiD'sy
         for unit in self.observations:
-            self.observations[unit] = self.resetUnitObservation(self.observations[unit])
+            self.observations[unit] = self.__resetUnitObservation(self.observations[unit])
 
         f = open(self.observationfile)
         self.rawObservation = json.load(f)
@@ -70,11 +117,11 @@ class whEnviroment:
 
         #populate the dictionary with observation array's
         for ally in self.alliedObs:
-            self.observations[ally["UiD"]] = self.singleObservation(ally,True)
+            self.observations[ally["UiD"]] = self.__singleObservation(ally,True)
             self.UidToUnitTypes[ally["UiD"]] = ally["type"]
         
         for enemy in self.enemyObs:
-            self.observations[enemy["UiD"]]  = self.singleObservation(enemy,False)
+            self.observations[enemy["UiD"]]  = self.__singleObservation(enemy,False)
             self.UidToUnitTypes[enemy["UiD"]] = enemy["type"]
 
         # transfer to 2d array
@@ -84,7 +131,7 @@ class whEnviroment:
         return observationArray
 
 
-    def resetUnitObservation(self, unit: np.array):
+    def __resetUnitObservation(self, unit: np.array):
         """function to reset observation to 0 appart from allience 
 
         Args:
@@ -100,7 +147,7 @@ class whEnviroment:
         return resetArray
 
 
-    def singleObservation(self, unit, ally):
+    def __singleObservation(self, unit, ally):
         position = unit[self.position]
         observation = np.array(
             [[
@@ -120,11 +167,11 @@ class whEnviroment:
                 unit["unary_hitpoints"]     
             ]]
         )
-        observation = self.NormalizeObservation(observation)
+        observation = self.__NormalizeObservation(observation)
         return observation    
 
 
-    def NormalizeObservation(self, observation):
+    def __NormalizeObservation(self, observation):
         """normalizes observation array
 
         Args:
@@ -137,7 +184,7 @@ class whEnviroment:
         return observation
 
 
-    def calcReward(self, ally: bool):
+    def __calcReward(self, ally: bool):
         """[summary]
 
         Args:
@@ -150,56 +197,65 @@ class whEnviroment:
         done = False
         if ally:
             for ally in self.alliedObs:
-                reward += self.calcRewardSingle(ally["UiD"], -1)
+                reward += self.__calcRewardSingle(ally["UiD"], -1)
             for enemy in self.enemyObs:
-                reward += self.calcRewardSingle(enemy["UiD"], 1)            
+                reward += self.__calcRewardSingle(enemy["UiD"], 1)            
             if (self.rawObservation["win"] == True):
                 done = True
                 reward += self.unitValues["win"]
             if (self.rawObservation["win"] == False):
                 done = True
                 reward += self.unitValues["loss"]
+
         else:
             for ally in self.alliedObs:
-                reward += self.calcRewardSingle(ally["UiD"], 1)
+                reward += self.__calcRewardSingle(ally["UiD"], 1)
             for enemy in self.enemyObs:
-                reward += self.calcRewardSingle(enemy["UiD"], -1)
+                reward += self.__calcRewardSingle(enemy["UiD"], -1)
             
-            if (self.rawObservation["win"] == True):
+            if (self.rawObservation["win"] == 'player'):
                 done = True
                 reward += self.unitValues["loss"]
-            if (self.rawObservation["win"] == False):
+            if (self.rawObservation["win"] == 'enemy'):
                 done = True
                 reward += self.unitValues["win"]
         return reward, done
 
 
-    def calcRewardSingle(self, unitUiD, sign):
+    def __calcRewardSingle(self, unitUiD, sign):
         healthloss = self.previousObservations[unitUiD][0,-1] - self.observations[unitUiD][0,-1]
         rewardAbs = self.unitValues[self.UidToUnitTypes[unitUiD]] * healthloss * sign
         return rewardAbs
 
 
-    def act(self, action):
-        pass
-
-
-    def step(self, action):
-        self.act(action)
-        observation = self.readObservation()
-        reward, done = self.calcReward(self.playerAI)
-        return observation, reward, done
-
-
     def reset(self):
-
+        self.__battleStarted = False
+        observation = self.__readObservation()
+        if "win" in self.rawObservation:
+            if (self.rawObservation["win"]):
+                print("rematch")
+                self.whGui.Rematch()
+            else:
+                print("force rematch")
+                self.whGui.forceRematch()
         print("**************************")
         print("***   awaiting reset   ***")
         print("**************************")
-        
-        observation = self.readObservation()
+        self.__waitForLoad()
+        print("ready for battle")
+        observation = self.__readObservation()
         return observation
-        
 
-    def writeOrders(self, order):
-        pass
+
+    def __waitForLoad(self):
+        try:
+            os.remove(self.interconnectfileGame)
+        except:
+            pass
+        while (not os.path.exists(self.interconnectfileGame)):
+            pass
+        f = open(self.interconnectfileEnv, "w")
+        interconnect = {}
+        interconnect["aiReady"] = True
+        json.dump(interconnect, f)
+        return
