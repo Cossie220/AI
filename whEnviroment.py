@@ -2,6 +2,7 @@ import json
 import uuid
 import numpy as np
 import os.path
+import os
 from whGUI import whGUI
 from copy import copy
 
@@ -29,7 +30,8 @@ class whEnviroment:
         # initialize where to find the observation and orders file 
         self.observationfile = "C:\Program Files (x86)\Steam\steamapps\common\Total War WARHAMMER II\observation.json"
         self.ordersfileName = "C:\Program Files (x86)\Steam\steamapps\common\Total War WARHAMMER II\orders.json"
-        self.interconnectfile = "C:\Program Files (x86)\Steam\steamapps\common\Total War WARHAMMER II\interconnect.json"
+        self.interconnectfileGame = "C:\Program Files (x86)\Steam\steamapps\common\Total War WARHAMMER II\interconnectGame.json"
+        self.interconnectfileEnv = "C:\Program Files (x86)\Steam\steamapps\common\Total War WARHAMMER II\interconnectEnv.json"
 
         # temp value of the diffrent units values to determine reward
         self.unitValues = {
@@ -48,9 +50,49 @@ class whEnviroment:
         }
 
         self.observations = {}
+        self.rawObservation= {}
         self.previousObservations = {}
         self.UidToUnitTypes = {}
+
+        self.whGui = whGUI(x = 0, y = 30)
     
+
+    def step(self, action):
+        self.__act(action)
+        if (not self.__battleStarted):
+            self.startBattle
+        observation = self.__readObservation()
+        reward, done = self.__calcReward(self.playerAI)
+        return observation, reward, done
+
+    def startBattle(self):
+        self.whGui.startBattle()
+        self.__battleStarted = True
+
+
+
+    def __act(self, ordersArray):
+        alliedOrders = []
+        for alliedOrder in ordersArray:
+            alliedOrders.append(self.__singleOrder(alliedOrder))
+        
+        orders = {}
+        orders["allies"] = alliedOrders
+
+
+    def __singleOrder(self, orderArray):
+         return { 
+            "goto": {
+                "x": orderArray[0],
+                "y": orderArray[1],
+                "moveFast": (orderArray[2] >= self.threshold) 
+                },
+            "attack": {
+                "attack": orderArray[3],
+                "unit": (orderArray[4] >= self.threshold)
+            }
+        }
+
 
     def __readObservation(self):
         """reads the most recent observation json gets called when the enveriment takes a step
@@ -186,44 +228,16 @@ class whEnviroment:
         return rewardAbs
 
 
-    def __act(self, ordersArray):
-        alliedOrders = []
-        for alliedOrder in ordersArray:
-            alliedOrders.append(self.__singleOrder(alliedOrder))
-        
-        orders = {}
-        orders["allies"] = alliedOrders
-
-
-    def __singleOrder(self, orderArray):
-         return { 
-            "goto": {
-                "x": orderArray[0],
-                "y": orderArray[1],
-                "moveFast": (orderArray[2] >= self.threshold) 
-                },
-            "attack": {
-                "attack": orderArray[3],
-                "unit": (orderArray[4] >= self.threshold)
-            }
-        }
-
-
-    def step(self, action):
-        self.__act(action)
-        if (not self.__battleStarted):
-            self.__startBattle
-        observation = self.__readObservation()
-        reward, done = self.__calcReward(self.playerAI)
-        return observation, reward, done
-
-
     def reset(self):
         self.__battleStarted = False
-        if (self.rawObservation["win"]):
-            whGUI.Rematch()
-        else:
-            whGUI.Rematch()
+        observation = self.__readObservation()
+        if "win" in self.rawObservation:
+            if (self.rawObservation["win"]):
+                print("rematch")
+                self.whGui.Rematch()
+            else:
+                print("force rematch")
+                self.whGui.forceRematch()
         print("**************************")
         print("***   awaiting reset   ***")
         print("**************************")
@@ -234,16 +248,14 @@ class whEnviroment:
 
 
     def __waitForLoad(self):
-        while (not os.path.exists(self.interconnectfile)):
+        try:
+            os.remove(self.interconnectfileGame)
+        except:
             pass
-        f = open(self.interconnectfile)
-        interconnect = json.load(f)
+        while (not os.path.exists(self.interconnectfileGame)):
+            pass
+        f = open(self.interconnectfileEnv, "w")
+        interconnect = {}
         interconnect["aiReady"] = True
         json.dump(interconnect, f)
         return
-
-
-    def __startBattle(self):
-        whGUI.startBattle()
-        self.__battleStarted = True
-

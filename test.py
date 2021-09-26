@@ -1,9 +1,7 @@
+from whEnviroment import whEnviroment
 from time import sleep
-from whGUI import whGUI
-from keyPress import PressKey
-import pydirectinput
-
-
-while True:
-    sleep(1)
-    pydirectinput.press('esc')
+env = whEnviroment(True)
+obs = env.reset()
+sleep(2)
+env.startBattle()
+print("succes!!")
