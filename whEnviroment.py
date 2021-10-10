@@ -3,7 +3,6 @@ import uuid
 import numpy as np
 import os.path
 import os
-from whGUI import whGUI
 from copy import copy
 
 
@@ -53,22 +52,13 @@ class whEnviroment:
         self.rawObservation= {}
         self.previousObservations = {}
         self.UidToUnitTypes = {}
-
-        self.whGui = whGUI(x = 0, y = 30)
     
 
     def step(self, action):
         self.__act(action)
-        if (not self.__battleStarted):
-            self.startBattle
         observation = self.__readObservation()
         reward, done = self.__calcReward(self.playerAI)
         return observation, reward, done
-
-    def startBattle(self):
-        self.whGui.startBattle()
-        self.__battleStarted = True
-
 
 
     def __act(self, ordersArray):
@@ -234,10 +224,8 @@ class whEnviroment:
         if "win" in self.rawObservation:
             if (self.rawObservation["win"]):
                 print("rematch")
-                self.whGui.Rematch()
             else:
                 print("force rematch")
-                self.whGui.forceRematch()
         print("**************************")
         print("***   awaiting reset   ***")
         print("**************************")
